@@ -23,6 +23,7 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 git clone https://github.com/johnliu33/ralph.git
 
 # Install to your project
+chmod +x ./ralph/install-ralph.sh
 ./ralph/install-ralph.sh /path/to/your-project
 ```
 
