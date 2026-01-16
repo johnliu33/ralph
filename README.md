@@ -6,8 +6,6 @@ Ralph is an autonomous AI agent loop that runs [Claude Code](https://claude.ai/d
 
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
-[Read my in-depth article on how I use Ralph](https://x.com/ryancarson/status/2008548371712135632)
-
 ## Prerequisites
 
 - [Claude Code CLI](https://claude.ai/download) installed and authenticated
@@ -16,9 +14,19 @@ Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
 ## Setup
 
-### Option 1: Copy to your project
+### Option 1: Use install script (recommended)
 
-Copy the ralph files into your project:
+```bash
+# Clone this repo
+git clone https://github.com/johnliu33/ralph.git
+
+# Install to your project
+./ralph/install-ralph.sh /path/to/your-project
+```
+
+This will copy `ralph.sh` and `prompt.md` to `your-project/scripts/ralph/`.
+
+### Option 2: Manual copy
 
 ```bash
 # From your project root
@@ -28,7 +36,7 @@ cp /path/to/ralph/prompt.md scripts/ralph/
 chmod +x scripts/ralph/ralph.sh
 ```
 
-### Option 2: Install skills globally
+### Option 3: Install skills globally
 
 Copy the skills to your Claude Code config for use across all projects:
 
@@ -36,12 +44,6 @@ Copy the skills to your Claude Code config for use across all projects:
 cp -r skills/prd ~/.claude/skills/
 cp -r skills/ralph ~/.claude/skills/
 ```
-
-### Configure Claude Code (recommended)
-
-Ralph works best when each story is small enough to complete in one context window. If you need to handle larger stories, consider breaking them into smaller pieces in your PRD.
-
-You can customize Claude Code behavior via `~/.claude/settings.json` if needed.
 
 ## Workflow
 
@@ -89,6 +91,7 @@ Ralph will:
 |------|---------|
 | `ralph.sh` | The bash loop that spawns fresh Claude Code instances |
 | `prompt.md` | Instructions given to each Claude Code instance |
+| `install-ralph.sh` | Install script to copy Ralph to your project |
 | `prd.json` | User stories with `passes` status (the task list) |
 | `prd.json.example` | Example PRD format for reference |
 | `progress.txt` | Append-only learnings for future iterations |
@@ -98,11 +101,11 @@ Ralph will:
 
 ## Flowchart
 
-[![Ralph Flowchart](ralph-flowchart.png)](https://snarktank.github.io/ralph/)
+[![Ralph Flowchart](ralph-flowchart.png)](https://johnliu33.github.io/ralph/)
 
-**[View Interactive Flowchart](https://snarktank.github.io/ralph/)** - Click through to see each step with animations.
+**[View Interactive Flowchart](https://johnliu33.github.io/ralph/)** - Click through to see each step with animations.
 
-The `flowchart/` directory contains the source code. To run locally:
+To run locally:
 
 ```bash
 cd flowchart
@@ -123,25 +126,20 @@ Each iteration spawns a **new Claude Code instance** with clean context. The onl
 
 Each PRD item should be small enough to complete in one context window. If a task is too big, the LLM runs out of context before finishing and produces poor code.
 
-Right-sized stories:
+**Right-sized stories:**
 - Add a database column and migration
 - Add a UI component to an existing page
 - Update a server action with new logic
 - Add a filter dropdown to a list
 
-Too big (split these):
+**Too big (split these):**
 - "Build the entire dashboard"
 - "Add authentication"
 - "Refactor the API"
 
 ### CLAUDE.md Updates Are Critical
 
-After each iteration, Ralph updates the relevant `CLAUDE.md` files with learnings. This is key because Claude Code automatically reads these files, so future iterations (and future human developers) benefit from discovered patterns, gotchas, and conventions.
-
-Examples of what to add to CLAUDE.md:
-- Patterns discovered ("this codebase uses X for Y")
-- Gotchas ("do not forget to update Z when changing W")
-- Useful context ("the settings panel is in component X")
+After each iteration, Ralph updates the relevant `CLAUDE.md` files with learnings. Claude Code automatically reads these files, so future iterations benefit from discovered patterns, gotchas, and conventions.
 
 ### Feedback Loops
 
@@ -150,17 +148,11 @@ Ralph only works if there are feedback loops:
 - Tests verify behavior
 - CI must stay green (broken code compounds across iterations)
 
-### Browser Verification for UI Stories
-
-Frontend stories must include "Verify in browser using dev-browser skill" in acceptance criteria. Ralph will use the dev-browser skill to navigate to the page, interact with the UI, and confirm changes work.
-
 ### Stop Condition
 
 When all stories have `passes: true`, Ralph outputs `<promise>COMPLETE</promise>` and the loop exits.
 
 ## Debugging
-
-Check current state:
 
 ```bash
 # See which stories are done
