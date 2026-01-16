@@ -6,6 +6,8 @@ Ralph is an autonomous AI agent loop that runs [Claude Code](https://claude.ai/d
 
 Based on [Geoffrey Huntley's Ralph pattern](https://ghuntley.com/ralph/).
 
+> **Note:** This repo is forked and modified from [snarktank/ralph](https://github.com/snarktank/ralph) (originally for Amp) to work with Claude Code.
+
 ## Prerequisites
 
 - [Claude Code CLI](https://claude.ai/download) installed and authenticated
