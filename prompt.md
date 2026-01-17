@@ -88,6 +88,27 @@ For any story that changes UI, you MUST verify it works in the browser:
 
 A frontend story is NOT complete until browser verification passes.
 
+## Status Output (Required)
+
+At the END of your response, output ONE of these status markers:
+
+**On success:**
+```
+STORY_COMPLETED: [Story ID] - [Story Title]
+```
+
+**On failure (tests fail, typecheck fails, etc.):**
+```
+STORY_FAILED: [Story ID] - [Reason]
+```
+
+**On blocked (cannot proceed, needs human input):**
+```
+STORY_BLOCKED: [Story ID] - [Reason]
+```
+
+These markers help ralph.sh display a clear summary of each iteration.
+
 ## Stop Condition
 
 After completing a user story, check if ALL stories have `passes: true`.

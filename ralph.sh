@@ -10,6 +10,49 @@ PRD_FILE="$SCRIPT_DIR/prd.json"
 PROGRESS_FILE="$SCRIPT_DIR/progress.txt"
 ARCHIVE_DIR="$SCRIPT_DIR/archive"
 LAST_BRANCH_FILE="$SCRIPT_DIR/.last-branch"
+LOG_FILE="$SCRIPT_DIR/ralph.log"
+
+# 顯示進度摘要
+show_progress() {
+  if [ -f "$PRD_FILE" ]; then
+    local total=$(jq '.userStories | length' "$PRD_FILE")
+    local passed=$(jq '[.userStories[] | select(.passes == true)] | length' "$PRD_FILE")
+    local remaining=$((total - passed))
+    echo "Progress: $passed/$total stories complete ($remaining remaining)"
+  fi
+}
+
+# 顯示下一個要處理的 story
+show_next_story() {
+  if [ -f "$PRD_FILE" ]; then
+    local next=$(jq -r '[.userStories[] | select(.passes == false)] | sort_by(.priority) | .[0] | "\(.id): \(.title)"' "$PRD_FILE" 2>/dev/null)
+    if [ -n "$next" ] && [ "$next" != "null: null" ]; then
+      echo "Next story: $next"
+    fi
+  fi
+}
+
+# 解析 Claude 輸出中的狀態標記
+show_iteration_summary() {
+  local output="$1"
+  echo ""
+  echo "─────────────────────────────────────────────────────────"
+  echo "  ITERATION SUMMARY"
+  echo "─────────────────────────────────────────────────────────"
+
+  if echo "$output" | grep -q "STORY_COMPLETED:"; then
+    local completed=$(echo "$output" | grep "STORY_COMPLETED:" | tail -1 | sed 's/.*STORY_COMPLETED://')
+    echo "  ✓ Completed:$completed"
+  elif echo "$output" | grep -q "STORY_FAILED:"; then
+    local failed=$(echo "$output" | grep "STORY_FAILED:" | tail -1 | sed 's/.*STORY_FAILED://')
+    echo "  ✗ Failed:$failed"
+  elif echo "$output" | grep -q "STORY_BLOCKED:"; then
+    local blocked=$(echo "$output" | grep "STORY_BLOCKED:" | tail -1 | sed 's/.*STORY_BLOCKED://')
+    echo "  ⚠ Blocked:$blocked"
+  fi
+
+  show_progress
+}
 
 # Archive previous run if branch changed
 if [ -f "$PRD_FILE" ] && [ -f "$LAST_BRANCH_FILE" ]; then
@@ -52,25 +95,40 @@ if [ ! -f "$PROGRESS_FILE" ]; then
 fi
 
 echo "Starting Ralph - Max iterations: $MAX_ITERATIONS"
+echo "" >> "$LOG_FILE"
+echo "======================================" >> "$LOG_FILE"
+echo "Ralph Run: $(date)" >> "$LOG_FILE"
+echo "Max Iterations: $MAX_ITERATIONS" >> "$LOG_FILE"
+echo "======================================" >> "$LOG_FILE"
 
 for i in $(seq 1 $MAX_ITERATIONS); do
   echo ""
-  echo "═══════════════════════════════════════════════════════"
-  echo "  Ralph Iteration $i of $MAX_ITERATIONS"
-  echo "═══════════════════════════════════════════════════════"
-  
-  # Run claude with the ralph prompt
-  OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | claude -p --dangerously-skip-permissions 2>&1 | tee /dev/stderr) || true
-  
+  echo "═══════════════════════════════════════════════════════════"
+  echo "  RALPH ITERATION $i / $MAX_ITERATIONS"
+  echo "═══════════════════════════════════════════════════════════"
+  show_progress
+  show_next_story
+  echo "─────────────────────────────────────────────────────────"
+
+  # Run claude with the ralph prompt (log + display)
+  OUTPUT=$(cat "$SCRIPT_DIR/prompt.md" | claude -p --dangerously-skip-permissions 2>&1 | tee -a "$LOG_FILE" | tee /dev/stderr) || true
+
+  # Show iteration summary
+  show_iteration_summary "$OUTPUT"
+
   # Check for completion signal
   if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
     echo ""
-    echo "Ralph completed all tasks!"
+    echo "═══════════════════════════════════════════════════════════"
+    echo "  RALPH COMPLETE!"
+    echo "═══════════════════════════════════════════════════════════"
+    show_progress
     echo "Completed at iteration $i of $MAX_ITERATIONS"
     exit 0
   fi
-  
-  echo "Iteration $i complete. Continuing..."
+
+  echo ""
+  echo "Continuing to next iteration..."
   sleep 2
 done
 
